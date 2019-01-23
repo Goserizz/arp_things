@@ -83,12 +83,38 @@ void set_gratuitous_arphdr (arp_hdr* arphdr, uint8_t* mac_src, uint8_t* ip_src)
     memcpy (&arphdr->target_ip, ip_src, 4);
 }
 
-void set_broadcast_eth (uint8_t* ether_frame, arp_hdr* arphdr, uint8_t* mac_dst)
+void set_request_arphdr (arp_hdr* arphdr, uint8_t* mac_src, uint8_t* ip_src, uint8_t* ip_dst)
 {
-    int frame_length = 6 + 6 + 2 + ARP_HDRLEN;
-    memcpy (ether_frame, mac_dst, 6);
-    memset (ether_frame + 6, 0xff, 6);
+    arphdr->htype = htons (1);
+    arphdr->ptype = htons (ETH_P_IP);
+    arphdr->hlen = 6;
+    arphdr->plen = 4;
+    arphdr->opcode = htons (ARPOP_REQUEST);
+    memcpy (&arphdr->sender_mac, mac_src, 6);
+    memcpy (&arphdr->sender_ip, ip_src, 4);
+    memset (&arphdr->target_mac, 0, 6);
+    memcpy (&arphdr->target_ip, ip_dst, 4);
+}
+
+void set_broadcast_eth (uint8_t* ether_frame, arp_hdr* arphdr, uint8_t* mac_src)
+{
+    memset (ether_frame, 0xff, 6);
+    memcpy (ether_frame + 6, mac_src, 6);
     ether_frame[12] = ETH_P_ARP / 256;
     ether_frame[13] = ETH_P_ARP % 256;
-    memcpy (ether_frame + ETH_HDRLEN, &arphdr, ARP_HDRLEN);
+    memcpy (ether_frame + ETH_HDRLEN, arphdr, ARP_HDRLEN);
+}
+
+void send_ether_frame (uint8_t* ether_frame, int frame_length, struct sockaddr_ll device)
+{
+    int sd, bytes;
+    if ((sd = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL))) < 0) {
+        perror ("socket() failed");
+        exit (EXIT_FAILURE);
+    }
+    if ((bytes = sendto (sd, ether_frame, frame_length, 0, (struct sockaddr *) &device, sizeof (device))) <= 0) {
+        perror ("sendto() failed");
+        exit (EXIT_FAILURE);
+    }
+    close (sd);
 }

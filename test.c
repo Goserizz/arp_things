@@ -3,7 +3,7 @@
 int main(int argc, char **argv)
 {
     int sd;
-    uint8_t mac_src[6], ip_src[4], mac_dst[6], ip_dst[4], ether_frame[IP_MAXPACKET], net_mask[4];
+    uint8_t mac_src[6], ip_src[4], mac_dst[6], ether_frame[IP_MAXPACKET], net_mask[4];
     struct sockaddr_in *ipv4;
     struct sockaddr_ll device;
     struct ifreq ifr;
@@ -33,33 +33,25 @@ int main(int argc, char **argv)
     }
     printf("Index: %i\n", device.sll_ifindex);
 
-    memset (mac_dst, 0xff, 6 * sizeof (uint8_t));
     device.sll_family = AF_PACKET;
-    memcpy(device.sll_addr, mac_dst, 6);
+    memset(device.sll_addr, 0xff, 6);
     device.sll_halen = htons (6);
     
     // arp header
-    set_gratuitous_arphdr (&arphdr, mac_src, ip_src);
+    // set_gratuitous_arphdr (&arphdr, mac_src, ip_src);
+    uint8_t ip_dst[4] = {192, 168, 0 ,110};
+    // print_ipv4 (ip_dst);
+    set_request_arphdr (&arphdr, mac_src, ip_src, ip_dst);
 
     // ether frame
     int frame_length = 6 + 6 + 2 + ARP_HDRLEN;
-    memcpy (ether_frame, mac_dst, 6);
-    memcpy (ether_frame + 6, mac_src, 6);
-    ether_frame[12] = ETH_P_ARP / 256;
-    ether_frame[13] = ETH_P_ARP % 256;
-    memcpy (ether_frame + ETH_HDRLEN, &arphdr, ARP_HDRLEN);
+    set_broadcast_eth (ether_frame, &arphdr, mac_src);
 
     //send ether frame
-    if ((sd = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL))) < 0) {
-        perror ("socket() failed");
-        exit (EXIT_FAILURE);
-    }
-    int bytes;
-    if ((bytes = sendto (sd, ether_frame, frame_length, 0, (struct sockaddr *) &device, sizeof (device))) <= 0) {
-        perror ("sendto() failed");
-        exit (EXIT_FAILURE);
-    }
-    close (sd);
+    send_ether_frame (ether_frame, frame_length, device);
+    
     printf("success.\n");
+    for (int i = 0; i < frame_length; i ++)
+        printf("%x ", ether_frame[i]);
     return 0;
 }
