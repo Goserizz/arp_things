@@ -18,10 +18,10 @@ int main(int argc, char **argv)
 
     snprintf (ifr.ifr_name, sizeof(ifr.ifr_name), interface);
     ip_src = get_ipv4 (sd, &ifr);
-    print_ipv4(ip_src);
+    print_ipv4(ip_src, stdout);
 
     get_hwaddr (sd, &ifr, mac_src);
-    print_mac (mac_src);
+    print_mac (mac_src, stdout);
     close(sd);
 
     device.sll_ifindex = if_nametoindex (interface);

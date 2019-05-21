@@ -1,5 +1,5 @@
 #include "arp.h"
-#include "ip_mac_hash.h"
+#include "dataio.h"
 
 int main(int argc, char** argv)
 {
@@ -16,13 +16,14 @@ int main(int argc, char** argv)
         exit (EXIT_FAILURE);
     }
 
-    snprintf (ifr.ifr_name, sizeof(ifr.ifr_name), "wlp3s0");
-    mask_num = get_mask_num (sd, &ifr);
+    snprintf (ifr.ifr_name, sizeof(ifr.ifr_name), argv[1]);
+    mask_num = get_ipv4_mask_num (sd, &ifr);
+    
     host_num = 1 << mask_num;
-    hash = (uint8_t**) malloc (sizeof(uint8_t*) * (1 << mask_num));
+    hash = (ipmac_t**) malloc (sizeof(ipmac_t*) * (1 << mask_num));
 
     arphdr = (arp_hdr*)(ether_frame + 14);
-    while (1) { 
+    while (1) {
         if ((status = recv (sd, ether_frame, IP_MAXPACKET, 0)) < 0) {
             if (errno == EINTR) {
                 memset (ether_frame, 0, IP_MAXPACKET * sizeof (uint8_t));
@@ -35,8 +36,12 @@ int main(int argc, char** argv)
         if (((((ether_frame[12]) << 8) + ether_frame[13]) == ETH_P_ARP) && (ntohs (arphdr->opcode) == ARPOP_REPLY)) {
             memcpy (sender_mac, ether_frame + 22, 6);
             memcpy (&sender_ip, ether_frame + 28, 4);
+            print_mac(sender_mac, stdout);
+            print_ipv4(sender_ip, stdout);
             add(sender_ip, sender_mac, hash, mask_num);
             save (hash, host_num);
         }
     }
+
+    return 0;
 }

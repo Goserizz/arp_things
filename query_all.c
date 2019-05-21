@@ -8,8 +8,10 @@ int main(int argv, char** args)
     struct sockaddr_in *ipv4;
     struct sockaddr_ll device;
     struct ifreq ifr;
-    char *interface = "wlp3s0";
+    char *interface = args[1];
     arp_hdr arphdr;
+
+    memset(ether_frame, 0, sizeof(ether_frame));
 
     if ((sd = socket (AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
         perror ("socket() failed to get socket descriptor for using ioctl()");
@@ -19,10 +21,10 @@ int main(int argv, char** args)
     snprintf (ifr.ifr_name, sizeof(ifr.ifr_name), interface);
 
     ip_src = get_ipv4 (sd, &ifr);
-    print_ipv4(ip_src);
+    print_ipv4(ip_src, stdout);
 
     get_hwaddr (sd, &ifr, mac_src);
-    print_mac (mac_src);
+    print_mac (mac_src, stdout);
 
     mask_num = get_ipv4_mask_num (sd, &ifr);
     host_num = 1 << mask_num;
@@ -36,12 +38,16 @@ int main(int argv, char** args)
     device.sll_halen = htons (6);
 
     now_ip = get_start_ip (ip_src, net_mask);
+    ip_src = next_ip(now_ip);
+    print_ipv4(ip_src, stdout);
     
     for (int i = 0; i < host_num - 1; i ++){
-        next_ip ((uint8_t*)&now_ip);
-        set_request_arphdr (&arphdr, mac_src, &ip_src, &now_ip);
-        set_broadcast_eth (ether_frame, &arphdr, mac_src);
-        send_ether_frame (ether_frame, 42, device);
+        now_ip = next_ip(now_ip);
+        //print_ipv4(ip_src, stdout);
+        //print_ipv4(now_ip, stdout);
+        //set_request_arphdr (&arphdr, mac_src, &ip_src, &now_ip);
+        //set_broadcast_eth (ether_frame, &arphdr, mac_src);
+        //send_ether_frame (ether_frame, 60, device);
     }
 
     return 0;

