@@ -5,7 +5,7 @@ int main(int argv, char** args)
     int sd, mask_num, host_num;
     uint8_t mac_src[6], ether_frame[IP_MAXPACKET];
     uint32_t ip_src, net_mask, now_ip;
-    struct sockaddr_in *ipv4;
+    // struct sockaddr_in *ipv4;
     struct sockaddr_ll device;
     struct ifreq ifr;
     char *interface = args[1];
