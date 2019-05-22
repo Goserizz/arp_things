@@ -3,9 +3,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <bits/stdint-uintn.h>
 #include <string.h>
 #include "arp.h"
+
+#if linux
+#include <bits/stdint-uintn.h>
+#endif
+
+#if __APPLE__
+
+#endif
+
 
 struct ipmac{
     uint32_t ip;
